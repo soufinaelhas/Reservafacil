@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
+import apiClient from './api/client';
 
 const AuthContext = createContext();
 
@@ -17,12 +17,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
-  // Configure axios defaults
+  // Configure apiClient defaults
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
-      delete axios.defaults.headers.common['Authorization'];
+      delete apiClient.defaults.headers.common['Authorization'];
     }
   }, [token]);
 
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
     const loadUser = async () => {
       if (token) {
         try {
-          const response = await axios.get('/api/auth/me');
+          const response = await apiClient.get('/auth/me');
           setUser(response.data.user);
         } catch (error) {
           console.error('Failed to load user:', error);
@@ -48,13 +48,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     try {
-      const response = await axios.post('/api/auth/register', data);
+      const response = await apiClient.post('/auth/register', data);
       const { user, token: newToken } = response.data;
-      
+
       setUser(user);
       setToken(newToken);
       localStorage.setItem('token', newToken);
-      
+
       toast.success('¡Registro exitoso! Verifica tu email.');
       return { success: true, user };
     } catch (error) {
@@ -66,17 +66,17 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, rememberMe = false) => {
     try {
-      const response = await axios.post('/api/auth/login', { 
-        email, 
-        password, 
-        rememberMe 
+      const response = await apiClient.post('/auth/login', {
+        email,
+        password,
+        rememberMe
       });
       const { user, token: newToken } = response.data;
-      
+
       setUser(user);
       setToken(newToken);
       localStorage.setItem('token', newToken);
-      
+
       toast.success('¡Bienvenido de nuevo!');
       return { success: true, user };
     } catch (error) {
@@ -90,19 +90,19 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    delete apiClient.defaults.headers.common['Authorization'];
     toast.success('Sesión cerrada correctamente');
   };
 
   const verifyEmail = async (verificationToken) => {
     try {
-      await axios.post('/api/auth/verify-email', { token: verificationToken });
+      await apiClient.post('/auth/verify-email', { token: verificationToken });
       toast.success('¡Email verificado correctamente!');
-      
+
       // Reload user data
-      const response = await axios.get('/api/auth/me');
+      const response = await apiClient.get('/auth/me');
       setUser(response.data.user);
-      
+
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.error || 'Error al verificar email';
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 
   const forgotPassword = async (email) => {
     try {
-      await axios.post('/api/auth/forgot-password', { email });
+      await apiClient.post('/auth/forgot-password', { email });
       toast.success('Si existe una cuenta con este email, recibirás un enlace de recuperación');
       return { success: true };
     } catch (error) {
@@ -125,9 +125,9 @@ export const AuthProvider = ({ children }) => {
 
   const resetPassword = async (resetToken, newPassword) => {
     try {
-      await axios.post('/api/auth/reset-password', { 
-        token: resetToken, 
-        newPassword 
+      await apiClient.post('/auth/reset-password', {
+        token: resetToken,
+        newPassword
       });
       toast.success('¡Contraseña actualizada correctamente!');
       return { success: true };
